@@ -68,7 +68,7 @@ function describeCandidate(c, now) {
   return `${label}${topic}${status} — same project — ${ago(o.lastActiveAt, now)} — id ${shortId(o.id)}`;
 }
 
-const TOPIC_LINE = 'end your reply with one line exactly like: 🧭 OnThread · sujet : <3 to 8 words> (write "topic" instead of "sujet" if the user does not write in French)';
+const TOPIC_LINE = 'end your reply with one line exactly like: 🧭 OnThread · sujet : <3 to 8 words> (write "topic" instead of "sujet" if the user does not write in French). Base the topic on the whole conversation so far, not only on this request; if the conversation already covers several different subjects, give a broad topic such as "Pilotage général : tous sujets <domain>"';
 
 export function sessionStartContext(conv, { enabled }) {
   if (!enabled || !conv.protection) return '';
