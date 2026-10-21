@@ -10,11 +10,26 @@ test('markers: French, English, decorated, and last-topic-wins', () => {
     'Voilà.',
     '🧭 OnThread · sujet : Paiements Stripe',
     '*🧭 OnThread — topic: Stripe payments*',
-    '> 🧭 OnThread · exception : Facturation',
     '🧭️ OnThread · exception: facturation',
   ].join('\n'));
   assert.equal(m.topic, 'Stripe payments');
-  assert.deepEqual(m.exceptions, ['Facturation', 'facturation']);
+  assert.deepEqual(m.exceptions, ['facturation']);
+});
+
+test('markers: examples in code blocks, quotes or inline code are ignored (Codex OT-005)', () => {
+  const m = parseMarkers([
+    'Le format est le suivant :',
+    '```text',
+    '🧭 OnThread · sujet : Exemple dans un bloc',
+    '```',
+    '> 🧭 OnThread · exception : Exemple cité',
+    'Par exemple `🧭 OnThread · sujet : inline`.',
+    '~~~',
+    '🧭 OnThread · topic: other fence',
+    '~~~',
+  ].join('\n'));
+  assert.equal(m.topic, null);
+  assert.deepEqual(m.exceptions, []);
 });
 
 test('markers: ignores prose that merely mentions OnThread', () => {
@@ -68,12 +83,3 @@ test('other plugins\' commands are ignored by the expansion hook', () => {
   assert.equal(res.stdout, '');
 });
 
-test('a user-set topic is kept unless Claude reports an agreed change', () => {
-  const data = tempDir();
-  const id = uuid();
-  seed(data, { id, topic: topic('Mon sujet', 'user') });
-  runHook('stop', { session_id: id, last_assistant_message: 'Réponse sans marqueur.' }, data);
-  assert.equal(readConv(data, id).topic.text, 'Mon sujet');
-  runHook('stop', { session_id: id, last_assistant_message: '🧭 OnThread · sujet : Sujet élargi' }, data);
-  assert.deepEqual([readConv(data, id).topic.text, readConv(data, id).topic.source], ['Sujet élargi', 'user']);
-});

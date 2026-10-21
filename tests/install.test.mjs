@@ -26,7 +26,8 @@ function hashTree(dir) {
   const h = crypto.createHash('sha256');
   const walk = (d) => {
     for (const name of fs.readdirSync(d).sort()) {
-      if (name === '.git' || name === 'node_modules') continue;
+      // Logs and the evaluation report may be written by a concurrent `npm run eval`.
+      if (name === '.git' || name === 'node_modules' || name.endsWith('.log') || name === 'EVAL-RESULTS.md') continue;
       const p = path.join(d, name);
       if (fs.statSync(p).isDirectory()) walk(p);
       else h.update(name).update(fs.readFileSync(p));
@@ -78,7 +79,7 @@ test('D34 no network, no telemetry, no extra service: runtime code uses only loc
     if (fs.statSync(p).isDirectory()) walk(p); else if (n.endsWith('.mjs')) files.push(p);
   });
   walk(dir);
-  const allowed = new Set(['node:fs', 'node:os', 'node:path']);
+  const allowed = new Set(['node:crypto', 'node:fs', 'node:os', 'node:path']);
   for (const f of files) {
     const src = fs.readFileSync(f, 'utf8');
     for (const m of src.matchAll(/from\s+'([^']+)'/g)) {

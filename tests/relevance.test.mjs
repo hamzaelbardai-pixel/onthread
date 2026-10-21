@@ -65,6 +65,8 @@ test('B16 no topic yet: Claude is asked to propose one, not to judge', () => {
 
 test('B17 after "continue here", the accepted subject is listed and never asked again', () => {
   const { data, marketing } = shopRegistry();
+  runHook('stop', { session_id: marketing.id, last_assistant_message: 'Cette demande ressemble plutôt à ta conversation « Intégration Stripe ». On continue ici ?\n🧭 OnThread · question : Stripe' }, data);
+  assert.match(context(runHook('prompt', { session_id: marketing.id, cwd: shop, prompt: 'oui' }, data)), /🧭 OnThread · exception : Stripe/);
   runHook('stop', { session_id: marketing.id, last_assistant_message: 'C\'est corrigé.\n\n🧭 OnThread · exception : Stripe' }, data);
   const ctx = context(runHook('prompt', { session_id: marketing.id, cwd: shop, prompt: 'Corrige aussi le webhook Stripe' }, data));
   assert.match(ctx, /Already accepted here, never ask again about: "Stripe"/);

@@ -26,9 +26,28 @@ Topics are proposed by Claude on a visible line (`🧭 OnThread · topic: …`) 
 - Conversations idle for more than `inactiveDays` (default 90) are not proposed as a better match. They stay in `/onthread:list`.
 - Forks, `/branch` and `/clear` start a new conversation with no topic. Claude Code does not tell plugins which conversation they came from. A fork takes its topic from the inherited history on its first answer.
 
+## Registry locks
+
+Writes to one conversation's record are serialized by a lock file. Node.js offers no portable operating-system lock, so a lock older than 8 s is treated as abandoned: Claude Code kills hooks after 5 s, so its owner is normally dead. Recovery is serialized by a guard file.
+
+In two very rare cases, updates can be lost, possibly several made meanwhile in the same conversation:
+- A process is frozen for more than 8 s while it holds a lock, for example if the computer goes to sleep at that exact moment.
+- A recovery is interrupted, and two other processes then recover at the same instant.
+
+The registry itself is never corrupted, because every write is atomic. Each reset starts a new registry folder, so a write already in flight can never bring old data back into the registry. If such a write leaves a stray file in a discarded folder, that file is never read and is deleted by the next reset. Resets are serialized by a registry-wide lock.
+
+## What Claude writes on its visible lines
+
+OnThread records what Claude writes on a `🧭 OnThread · …` line at the end of an answer. Examples in code blocks, quotes, indented code or inline code are ignored.
+
+- A **"continue here"** answer is recorded only when three conditions hold: OnThread asked the question in the previous turn (each such question ends with a `🧭 OnThread · question : …` line), your reply is a short, plain yes ("oui", "yes", "vas-y", "oui, continue ici"…) with no negation, "but" or question, and the subject matches the question. A longer or conditional reply is not taken as consent, so OnThread may ask about that subject again later. Accepted subjects are listed by `/onthread:list`.
+- A **topic you set yourself** with `/onthread:topic` only ever changes with `/onthread:topic`. Automatic topics can be updated by Claude when you agree to a change.
+
+These rules rely on Claude writing the lines as instructed, so they are strong safeguards, not cryptographic proof.
+
 ## Matching
 
-Choosing which other conversations to show Claude is a cheap word-overlap ranking (accent- and plural-insensitive, French and English stop words). It can miss a match that shares no words, such as "invoice" vs "billing". Claude still sees the closest same-project conversations, and judges meaning, not words.
+Choosing which other conversations to show Claude is a cheap word-overlap ranking (accent- and plural-insensitive, French and English stop words). Words in any script are handled (Latin, Arabic, Cyrillic…). Languages written without spaces, such as Chinese or Japanese, are checked, but their ranking is weaker. It can miss a match that shares no words, such as "invoice" vs "billing". Claude still sees the closest same-project conversations, and judges meaning, not words.
 
 ## Platforms and versions
 

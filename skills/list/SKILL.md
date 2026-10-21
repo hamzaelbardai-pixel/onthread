@@ -3,7 +3,7 @@ name: list
 description: List the conversations OnThread knows, with their topic and last activity.
 argument-hint: ""
 disable-model-invocation: true
-allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *)
+allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli list *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli list *)
 ---
 The user typed `/onthread:list $ARGUMENTS`.
 

@@ -81,4 +81,5 @@ Or `/plugin uninstall onthread@onthread` inside a session.
 | "hook error" mentioning `node` | Node.js is missing or not on PATH. Install Node 18+, then restart Claude Code. |
 | No `🧭` line ever appears | Run `/reload-plugins` or start a new conversation. Then check that `claude plugin list` shows `onthread@onthread` as enabled. |
 | You want to see what was recorded | `/onthread:list` and `/onthread:topic` |
+| A hook seems slow | Start Claude Code with `ONTHREAD_TRACE=/path/to/trace.log` set. It records event names and timings only. |
 | You want to inspect errors | `onthread-errors.log` in `~/.claude/plugins/data/onthread-onthread/`. It never contains your prompts. |

@@ -3,7 +3,7 @@ name: topic
 description: Show the topic OnThread recorded for this conversation, or change it (/onthread:topic <new topic>).
 argument-hint: "[new topic]"
 disable-model-invocation: true
-allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *)
+allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli topic *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli topic *)
 ---
 The user typed `/onthread:topic $ARGUMENTS`.
 

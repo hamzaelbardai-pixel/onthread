@@ -11,6 +11,7 @@ You, in the conversation "Marketing e-commerce":
 Claude:
   This request looks like it belongs to your conversation "Stripe integration".
   Do you want to continue here anyway?
+  🧭 OnThread · question : Stripe integration
 ```
 
 ## The problem
@@ -105,7 +106,7 @@ Stored locally, in Claude Code's plugin data folder (`~/.claude/plugins/data/ont
 - the one-line topic, the subjects you accepted with "continue here", and the on/off switch;
 - creation and last-activity dates.
 
-**Not stored:** your prompts, Claude's answers, file contents, or secrets. Conversations from other projects are shown to Claude by name only, never by description. Nothing leaves your machine: there are no network calls, no telemetry and no cloud sync. Uninstalling removes the data folder. To keep it, use `--keep-data`. The [example registry](examples/registry) shows exactly what a record looks like.
+**Not stored:** your prompts, Claude's answers, file contents, or secrets. Conversations from other projects are shown to Claude by their custom title only (or as "an untitled conversation"), never by their topic. `/onthread:list`, which you run yourself, lists all recorded conversations with their topics. The error log records only error categories, never message content. Nothing leaves your machine: there are no network calls, no telemetry and no cloud sync. Uninstalling removes the data folder. To keep it, use `--keep-data`. The [example registry](examples/registry) shows exactly what a record looks like.
 
 ## Limitations
 

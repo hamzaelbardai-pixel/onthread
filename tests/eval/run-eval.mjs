@@ -16,6 +16,20 @@ import { findClaude, ROOT } from '../helpers.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const spec = JSON.parse(fs.readFileSync(path.join(here, 'scenarios.json'), 'utf8'));
 const CLAUDE = findClaude();
+
+// If OnThread is already installed and enabled for this user, loading this
+// checkout again with --plugin-dir would run every hook twice. Use the installed
+// copy then (a local-folder marketplace loads it from this checkout).
+function installedEnabled() {
+  try {
+    const home = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
+    const s = JSON.parse(fs.readFileSync(path.join(home, 'settings.json'), 'utf8'));
+    return s.enabledPlugins?.['onthread@onthread'] === true;
+  } catch {
+    return false;
+  }
+}
+const PLUGIN_ARGS = installedEnabled() ? [] : ['--plugin-dir', ROOT];
 if (!CLAUDE) {
   console.error('Claude Code binary not found. Set CLAUDE_BIN.');
   process.exit(2);
@@ -59,38 +73,55 @@ function run(scenario) {
   for (const key of scenario.others) seed(convDir, key, crypto.randomUUID(), projectDir);
 
   const started = Date.now();
-  const res = spawnSync(CLAUDE, [
-    '-p', scenario.prompt,
-    '--plugin-dir', ROOT,
-    '--session-id', sid,
-    '--max-turns', '3',
-    '--output-format', 'json',
-    '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
-    '--tools', 'Read,Glob,Grep',
-  ], {
-    cwd: projectDir,
-    encoding: 'utf8',
-    timeout: 240000,
-    env: { ...process.env, ONTHREAD_DATA_DIR: data },
+  const elapsed = () => Math.round((Date.now() - started) / 1000);
+  const turn = (prompt, sessionArgs) => {
+    const res = spawnSync(CLAUDE, [
+      '-p', prompt,
+      ...PLUGIN_ARGS,
+      ...sessionArgs,
+      '--max-turns', '8',
+      '--output-format', 'json',
+      '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+      '--tools', 'Read,Glob,Grep',
+    ], { cwd: projectDir, encoding: 'utf8', timeout: 240000, env: { ...process.env, ONTHREAD_DATA_DIR: data } });
+    // A failed run is an evaluation ERROR, never evidence of good behavior.
+    let envelope = null;
+    try { envelope = JSON.parse(res.stdout); } catch { /* handled below */ }
+    const reply = typeof envelope?.result === 'string' ? envelope.result : '';
+    const failure = res.error ? `spawn error: ${res.error.code || res.error.message}`
+      : res.status !== 0 ? `exit status ${res.status}`
+        : !envelope ? 'no JSON result'
+          : envelope.is_error || envelope.subtype !== 'success' ? `result error (${envelope.subtype})`
+            : !reply.trim() ? 'empty reply' : null;
+    return { reply, failure, diag: String(res.stderr || res.stdout || '').slice(0, 400) };
+  };
+  const record = () => {
+    try { return JSON.parse(fs.readFileSync(path.join(convDir, `${sid}.json`), 'utf8')); } catch { return {}; }
+  };
+  const finish = (r) => { fs.rmSync(base, { recursive: true, force: true }); return { id: scenario.id, expect: scenario.expect, seconds: elapsed(), ...r }; };
+
+  const first = turn(scenario.prompt, ['--session-id', sid]);
+  if (first.failure) return finish({ pass: false, asks: false, detail: `ERROR: ${first.failure}`, reply: first.diag });
+  const { asks, mentionOk } = classify(first.reply, scenario);
+
+  if (scenario.expect === 'ask') return finish({ pass: asks && mentionOk, asks, detail: '', reply: first.reply });
+  if (scenario.expect === 'proceed') return finish({ pass: !asks, asks, detail: '', reply: first.reply });
+  if (scenario.expect === 'topic') {
+    const rec = record();
+    return finish({ pass: Boolean(rec.topic?.text) && !asks, asks, detail: rec.topic ? `recorded topic: "${rec.topic.text}"` : 'no topic recorded', reply: first.reply });
+  }
+  // 'flow': Claude asks, the user answers yes, OnThread records the accepted subject.
+  const pending = record().pendingQuestion?.text || null;
+  const second = turn(scenario.followUp, ['--resume', sid]);
+  if (second.failure) return finish({ pass: false, asks, detail: `ERROR on follow-up: ${second.failure}`, reply: `${first.reply}\n\n--- follow-up ---\n${second.diag}` });
+  const accepted = (record().exceptions || []).map((e) => e.text);
+  const ok = asks && mentionOk && accepted.some((t) => new RegExp(scenario.mention, 'i').test(t));
+  return finish({
+    pass: ok,
+    asks,
+    detail: `question recorded: ${pending ? `"${pending}"` : 'none'}; accepted after "${scenario.followUp}": ${accepted.length ? accepted.map((t) => `"${t}"`).join(', ') : 'none'}`,
+    reply: `${first.reply}\n\n--- user: ${scenario.followUp} ---\n\n${second.reply}`,
   });
-  let reply = '';
-  try {
-    reply = JSON.parse(res.stdout).result || '';
-  } catch {
-    reply = `(no JSON result) ${String(res.stdout || res.stderr).slice(0, 400)}`;
-  }
-  const { asks, mentionOk } = classify(reply, scenario);
-  let pass;
-  let detail = '';
-  if (scenario.expect === 'ask') pass = asks && mentionOk;
-  else if (scenario.expect === 'proceed') pass = !asks;
-  else {
-    const rec = JSON.parse(fs.readFileSync(path.join(convDir, `${sid}.json`), 'utf8'));
-    pass = Boolean(rec.topic?.text) && !asks;
-    detail = rec.topic ? `recorded topic: "${rec.topic.text}"` : 'no topic recorded';
-  }
-  fs.rmSync(base, { recursive: true, force: true });
-  return { id: scenario.id, expect: scenario.expect, pass, asks, detail, seconds: Math.round((Date.now() - started) / 1000), reply };
 }
 
 const only = process.argv.slice(2);
@@ -109,6 +140,7 @@ const lines = [
   '# OnThread live evaluation',
   '',
   `Date: ${new Date().toISOString().slice(0, 10)} · Claude Code ${version} · ${passed}/${results.length} scenarios as expected.`,
+  `Plugin: ${PLUGIN_ARGS.length ? 'this checkout via --plugin-dir' : 'installed onthread@onthread (local marketplace = this checkout)'}.`,
   'Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself.',
   '',
   '| Scenario | Expected | Result |',

@@ -8,19 +8,19 @@ Conversation: **Marketing e-commerce**. Another conversation in the same project
 
 > **You:** Corrige le problème de synchronisation des paiements Stripe.
 >
-> **Claude:** Cette demande ressemble plutôt à ta conversation « Intégration Stripe », qui porte sur les paiements, les webhooks et les remboursements. On continue ici quand même ?
+> **Claude:** Cette demande ressemble plutôt à ta conversation « Intégration Stripe », qui porte sur les paiements, les webhooks et les remboursements. Ici, on parle de stratégie marketing. Tu veux quand même que je corrige la synchronisation des paiements Stripe ici ?
+>
+> 🧭 OnThread · question : Intégration Stripe
+
+The last line is how OnThread knows it asked. If you then answer a plain "yes" ("Oui, continue ici."), Claude does the task and ends with `🧭 OnThread · exception : Intégration Stripe`. From then on, Stripe requests in this conversation pass without a question. The live evaluation checks this two-turn exchange (scenario B17b).
 
 The same in English:
 
 > **You:** Fix the Stripe webhook signature verification bug.
 >
-> **Claude:** This request looks like it belongs in your **"Stripe integration"** conversation (Stripe payments, webhooks and refunds). This one is about marketing strategy. Do you want me to go ahead here anyway?
-
-With mixed languages:
-
-> **You:** Peux-tu fix le bug du webhook Stripe stp ?
+> **Claude:** This looks like it belongs in your "Stripe integration" conversation, which covers payments, webhooks and refunds. Do you want to continue here anyway?
 >
-> **Claude:** Cette demande ressemble plutôt à ta conversation « Stripe integration » (paiements, webhooks et remboursements Stripe). Ici, on parle de marketing. Tu veux qu'on continue ici quand même ?
+> 🧭 OnThread · question : Stripe integration
 
 ## A new subject with no matching conversation
 
@@ -28,7 +28,9 @@ Conversation: **Design UX/UI**.
 
 > **You:** Je veux développer un outil de gestion des ressources humaines pour mon entreprise.
 >
-> **Claude:** Cette demande (un outil RH) n'a pas grand-chose à voir avec cette conversation, qui porte sur le design du dashboard et des pages produit. Aucune de tes autres conversations ne correspond non plus. Tu préfères l'ouvrir dans une nouvelle conversation dédiée, ou on continue ici quand même ?
+> **Claude:** Ta demande (un outil de gestion RH) n'a pas grand-chose à voir avec cette conversation, qui porte sur le design du dashboard et des pages produit de la boutique. Je te conseille d'ouvrir une conversation dédiée, et idéalement un projet séparé. On continue ici quand même ?
+>
+> 🧭 OnThread · question : Outil RH
 
 ## No interruption
 
@@ -53,13 +55,3 @@ On the first real request of a new conversation, Claude ends its answer with a l
 ```
 
 OnThread stored exactly that text as the conversation's topic in the evaluation run. You can change it at any time with `/onthread:topic <new topic>`.
-
-## After you answer "continue here"
-
-Claude does the task and ends with, for example:
-
-```text
-🧭 OnThread · exception : Stripe
-```
-
-From then on, Stripe requests in this conversation pass without a question.

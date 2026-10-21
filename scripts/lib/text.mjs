@@ -33,10 +33,11 @@ export function stripPasted(s) {
 }
 
 export function stems(s, limit = 4000) {
-  const words = normalize(stripPasted(s).slice(0, limit)).split(/[^a-z0-9]+/);
+  // Any script (Latin, Arabic, Cyrillic, CJK…): split on everything that is not a letter or digit.
+  const words = normalize(stripPasted(s).slice(0, limit)).split(/[^\p{L}\p{M}\p{N}]+/u);
   const out = new Set();
   for (const w of words) {
-    if (w.length < 3 || STOPWORDS.has(w) || /^\d+$/.test(w)) continue;
+    if (w.length < 3 || STOPWORDS.has(w) || /^\p{N}+$/u.test(w)) continue;
     out.add(w.length > 5 ? w.slice(0, 5) : w);
   }
   return out;
@@ -58,9 +59,9 @@ export function overlapCount(queryStems, docText) {
 
 // Short acknowledgements ("ok", "oui", "2") never need a check.
 export function isTrivialPrompt(prompt) {
-  const t = normalize(prompt).replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const t = normalize(prompt).replace(/[^\p{L}\p{M}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
   if (!t) return true;
-  if (/^[0-9 ]{1,6}$/.test(t)) return true;
+  if (/^[\p{N} ]{1,6}$/u.test(t)) return true;
   return t.length <= 20 && TRIVIAL.has(t);
 }
 
@@ -70,6 +71,7 @@ export function cleanLabel(s, max = 160) {
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/[`*_~<>]/g, '')
     .replace(/^["'«“\s]+|["'»”\s]+$/g, '')
+    .replace(/["«»“”]/g, "'") // labels are shown to Claude inside double quotes
     .replace(/\s+/g, ' ')
     .trim();
   return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t;

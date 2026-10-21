@@ -3,7 +3,7 @@ name: off
 description: Turn OnThread off for this conversation, or everywhere with /onthread:off all.
 argument-hint: "[all]"
 disable-model-invocation: true
-allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli *)
+allowed-tools: Bash(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli off *), PowerShell(node "${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs" cli off *)
 ---
 The user typed `/onthread:off $ARGUMENTS`.
 

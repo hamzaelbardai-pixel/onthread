@@ -17,7 +17,7 @@ export function projectOf(cwd) {
 }
 
 export function sameProject(a, b) {
-  if (!a || !b) return false;
+  if (!a || !b || typeof a.path !== 'string' || typeof b.path !== 'string') return false;
   const norm = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
   return norm(a.path) === norm(b.path);
 }
