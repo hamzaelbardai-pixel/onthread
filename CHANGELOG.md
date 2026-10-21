@@ -2,6 +2,10 @@
 
 All notable changes to OnThread are documented here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.1] — 2026-10-21
+
+- Automatic topics now consider the whole conversation, not just the latest request. A conversation that already covers several subjects gets a broad topic, such as "Pilotage général : …", instead of a narrow one. This avoids needless questions in general-purpose conversations.
+
 ## [0.1.0] — 2026-10-21
 
 First public version.
