@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "7d0c2f4e-1b8a-4c6e-9f21-3a5b7c9d1e2f",
+  "title": "Intégration Stripe",
+  "project": { "path": "/home/alex/code/shop", "name": "shop" },
+  "topic": { "text": "Paiements Stripe : intégration, webhooks, remboursements", "source": "auto", "setAt": "2026-10-20T09:12:44.000Z" },
+  "promptsSinceTopic": 7,
+  "exceptions": [],
+  "protection": true,
+  "origin": "startup",
+  "createdAt": "2026-10-20T09:11:02.000Z",
+  "updatedAt": "2026-10-21T15:40:10.000Z",
+  "lastActiveAt": "2026-10-21T15:40:10.000Z"
+}

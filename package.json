@@ -1,0 +1,14 @@
+{
+  "name": "onthread",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Claude Code plugin: notices when a request seems to belong to another conversation and asks before working on it.",
+  "license": "MIT",
+  "author": "HamzaElbardai <261789655+hamzaelbardai-pixel@users.noreply.github.com>",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test",
+    "eval": "node tests/eval/run-eval.mjs"
+  }
+}

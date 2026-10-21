@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "onthread",
+  "description": "OnThread: keep each task in the right Claude Code conversation.",
+  "owner": {
+    "name": "HamzaElbardai",
+    "email": "261789655+hamzaelbardai-pixel@users.noreply.github.com",
+    "url": "https://github.com/hamzaelbardai-pixel"
+  },
+  "plugins": [
+    {
+      "name": "onthread",
+      "source": "./",
+      "description": "Notices when a request seems to belong to another conversation and asks before working on it.",
+      "category": "productivity",
+      "tags": ["conversations", "sessions", "context"]
+    }
+  ]
+}

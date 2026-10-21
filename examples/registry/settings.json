@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "inactiveDays": 90,
+  "maxCandidates": 5
+}

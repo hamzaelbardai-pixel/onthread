@@ -1,0 +1,9 @@
+# Local OnThread data and test leftovers — never commit a real registry
+/data/
+*.corrupt-*
+*.lock
+*.tmp
+*.log
+node_modules/
+.DS_Store
+Thumbs.db

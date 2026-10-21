@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "c41e9a77-52d3-4f0b-8e6a-0b9f1d2c3e4a",
+  "title": null,
+  "project": { "path": "/home/alex/code/shop", "name": "shop" },
+  "topic": { "text": "Stratégie marketing et réseaux sociaux", "source": "user", "setAt": "2026-10-18T14:02:00.000Z" },
+  "promptsSinceTopic": 3,
+  "exceptions": [{ "text": "Stripe", "at": "2026-10-21T16:05:31.000Z" }],
+  "protection": true,
+  "origin": "resume",
+  "createdAt": "2026-10-18T14:00:11.000Z",
+  "updatedAt": "2026-10-21T16:05:31.000Z",
+  "lastActiveAt": "2026-10-21T16:05:31.000Z"
+}

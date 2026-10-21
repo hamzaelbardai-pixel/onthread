@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "onthread",
+  "displayName": "OnThread",
+  "version": "0.1.0",
+  "description": "Right task. Right conversation. Every time. Notices when a request seems to belong to another Claude Code conversation and asks before working on it.",
+  "author": {
+    "name": "HamzaElbardai",
+    "email": "261789655+hamzaelbardai-pixel@users.noreply.github.com",
+    "url": "https://github.com/hamzaelbardai-pixel"
+  },
+  "homepage": "https://github.com/hamzaelbardai-pixel/onthread",
+  "repository": "https://github.com/hamzaelbardai-pixel/onthread",
+  "license": "MIT",
+  "keywords": ["conversations", "sessions", "context", "focus", "hooks", "productivity"]
+}

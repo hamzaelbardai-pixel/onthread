@@ -1,0 +1,17 @@
+{
+  "description": "OnThread: record each conversation's topic and check new requests against it.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs\" hook start", "timeout": 5 } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs\" hook prompt", "timeout": 5 } ] }
+    ],
+    "UserPromptExpansion": [
+      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs\" hook expansion", "timeout": 5 } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/onthread.mjs\" hook stop", "timeout": 5 } ] }
+    ]
+  }
+}

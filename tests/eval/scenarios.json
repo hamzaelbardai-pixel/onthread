@@ -1,0 +1,25 @@
+{
+  "note": "Fictional conversations. 'expect' is what a good OnThread behavior looks like: 'ask' = Claude stops and asks before working, 'proceed' = no interruption, 'topic' = Claude proposes the topic line.",
+  "conversations": {
+    "marketing": { "title": "Marketing e-commerce", "topic": "Stratégie marketing, acquisition et réseaux sociaux du site" },
+    "stripe": { "title": "Intégration Stripe", "topic": "Paiements Stripe : intégration, webhooks, remboursements" },
+    "design": { "title": "Design UX/UI", "topic": "Design du dashboard et des pages produit" },
+    "backend": { "title": "Développement backend", "topic": "API, base de données, authentification et tests backend" },
+    "marketing_en": { "title": "Marketing strategy", "topic": "Marketing strategy and social media for the shop" },
+    "stripe_en": { "title": "Stripe integration", "topic": "Stripe payments, webhooks and refunds" }
+  },
+  "scenarios": [
+    { "id": "B9-coherent", "self": "stripe", "others": ["marketing", "design"], "prompt": "Ajoute la prise en charge des remboursements partiels.", "expect": "proceed" },
+    { "id": "B10-subtopic", "self": "backend", "others": ["marketing", "design"], "prompt": "Comment devrait-on structurer la gestion des erreurs de l'API ?", "expect": "proceed" },
+    { "id": "B11-general-question", "self": "backend", "others": ["marketing", "stripe"], "prompt": "Peux-tu m'expliquer rapidement ce qu'est un CRM ?", "expect": "proceed" },
+    { "id": "B12-natural-evolution", "self": "stripe", "others": ["marketing", "design"], "prompt": "Il faudrait aussi envoyer un email de confirmation après chaque paiement réussi.", "expect": "proceed" },
+    { "id": "B13-confusion", "self": "marketing", "others": ["stripe", "design"], "prompt": "Corrige le problème de synchronisation des paiements Stripe.", "expect": "ask", "mention": "Stripe" },
+    { "id": "B14-new-subject", "self": "design", "others": ["marketing", "stripe"], "prompt": "Je veux développer un outil de gestion des ressources humaines pour mon entreprise.", "expect": "ask" },
+    { "id": "B15-ambiguous", "self": "marketing", "others": ["stripe", "design"], "prompt": "Mets à jour le texte de la page des tarifs.", "expect": "proceed" },
+    { "id": "B16-voluntary-switch", "self": "marketing", "others": ["backend", "design"], "prompt": "Je sais qu'on est dans la discussion marketing, mais je veux maintenant travailler sur le backend ici : propose-moi le code d'un endpoint /health.", "expect": "proceed" },
+    { "id": "B17-after-exception", "self": "marketing", "others": ["stripe", "design"], "exceptions": ["Stripe"], "prompt": "Corrige aussi le webhook Stripe des remboursements.", "expect": "proceed" },
+    { "id": "C25-english-confusion", "self": "marketing_en", "others": ["stripe_en"], "prompt": "Fix the Stripe webhook signature verification bug.", "expect": "ask", "mention": "Stripe" },
+    { "id": "C26-mixed-languages", "self": "marketing", "others": ["stripe_en", "design"], "prompt": "Peux-tu fix le bug du webhook Stripe stp ?", "expect": "ask", "mention": "Stripe" },
+    { "id": "A-first-message-topic", "self": null, "others": ["marketing", "stripe"], "prompt": "Je veux mettre en place un programme de fidélité avec des points pour mes clients.", "expect": "topic" }
+  ]
+}
