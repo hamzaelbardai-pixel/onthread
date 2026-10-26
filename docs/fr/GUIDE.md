@@ -67,6 +67,8 @@ Tout reste sur ton ordinateur, dans le dossier de données du plugin (`~/.claude
 - **Ce qui est enregistré :** l'identifiant de chaque conversation, son titre si tu l'as nommée toi-même, le dossier du projet, le sujet en une ligne, les sujets acceptés avec « continue ici », et les dates.
 - **Ce qui n'est jamais enregistré :** tes messages, les réponses de Claude et le contenu de tes fichiers. Si un titre ou un sujet contient un mot de passe ou une clé reconnaissable (`mdp=…`, clé API, long jeton), il est remplacé par `[redacted]` avant d'être enregistré. Évite quand même de mettre un secret dans le nom d'une conversation.
 
+- **Ce qui tourne :** quatre hooks de Claude Code (ouverture de session, chaque message, chaque commande `/onthread:*`, fin de chaque réponse) lancent `node scripts/onthread.mjs` depuis le dossier du plugin. Il ne lit et n'écrit que dans le dossier de données d'OnThread, ajoute une courte note (1 800 caractères au plus) au contexte de Claude avant chaque message, et ne fait aucun appel réseau.
+
 Il n'y a ni serveur, ni télémétrie, ni clé API, ni service payant. La désinstallation supprime ces données ; ajoute `--keep-data` pour les garder.
 
 ## Limites à connaître

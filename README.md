@@ -1,3 +1,5 @@
+![OnThread logo](assets/logo.svg)
+
 # OnThread
 
 **Right task. Right conversation. Every time.**
@@ -105,6 +107,8 @@ Stored locally, in Claude Code's plugin data folder (`~/.claude/plugins/data/ont
 - conversation id, custom title (if you set one), project folder path and name;
 - the one-line topic, the subjects you accepted with "continue here", and the on/off switch;
 - creation and last-activity dates.
+
+**What runs:** four Claude Code hooks (session start, each message, each `/onthread:*` command, end of each answer) start `node scripts/onthread.mjs` from the plugin folder. It reads and writes only OnThread's data folder, adds a short note (at most 1,800 characters) to Claude's context before each message, and makes no network calls. The four `/onthread:*` skills only pre-approve that same script.
 
 **Not stored:** your prompts, Claude's answers, or file contents. Titles and topics are short labels; obvious credentials in them (`password=…`, API keys, long tokens) are replaced by `[redacted]` before they are stored. Still, do not put secrets in conversation titles. Conversations from other projects are shown to Claude by their custom title only (or as "an untitled conversation"), never by their topic. `/onthread:list`, which you run yourself, lists all recorded conversations with their topics. The error log records only error categories, never message content. Nothing leaves your machine: there are no network calls, no telemetry and no cloud sync. Uninstalling removes the data folder. To keep it, use `--keep-data`. The [example registry](examples/registry) shows exactly what a record looks like.
 
