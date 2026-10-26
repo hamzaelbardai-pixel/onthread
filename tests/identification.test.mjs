@@ -33,7 +33,7 @@ test('A3 resume restores the same record (origin unchanged)', () => {
   const data = tempDir();
   const id = uuid();
   runHook('start', { session_id: id, cwd, source: 'startup' }, data);
-  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n🧭 OnThread · sujet : Paiements Stripe' }, data);
+  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n\n🧭 OnThread · sujet : Paiements Stripe' }, data);
   runHook('start', { session_id: id, cwd, source: 'resume' }, data);
   const conv = readConv(data, id);
   assert.equal(conv.origin, 'startup');

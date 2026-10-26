@@ -196,6 +196,7 @@ export function isConversation(v, expectedId = null) {
   if (v.protection !== undefined && typeof v.protection !== 'boolean') return false;
   if (v.pendingQuestion !== undefined && v.pendingQuestion !== null
     && !(isStr(v.pendingQuestion.text) && isDate(v.pendingQuestion.at))) return false;
+  if (v.pendingAnswer !== undefined && typeof v.pendingAnswer !== 'boolean') return false;
   if (v.promptsSinceTopic !== undefined && !(Number.isInteger(v.promptsSinceTopic) && v.promptsSinceTopic >= 0)) return false;
   if (!isDate(v.lastActiveAt)) return false;
   return true;

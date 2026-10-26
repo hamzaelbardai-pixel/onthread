@@ -1,6 +1,6 @@
 {
   "name": "onthread",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Claude Code plugin: notices when a request seems to belong to another conversation and asks before working on it.",
   "license": "MIT",

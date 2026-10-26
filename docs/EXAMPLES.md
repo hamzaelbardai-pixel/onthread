@@ -1,6 +1,6 @@
 # Examples
 
-Every reply below is **real Claude output**, copied from the live evaluation in [EVAL-RESULTS.md](EVAL-RESULTS.md) (Claude Code 2.1.299, fictional conversations). They were not edited.
+Every reply below is **real Claude output**, copied from a live evaluation run (Claude Code 2.1.299, fictional conversations). They were not edited. The latest run, with every reply in full, is in [EVAL-RESULTS.md](EVAL-RESULTS.md).
 
 ## A request that belongs to another conversation
 
@@ -12,7 +12,7 @@ Conversation: **Marketing e-commerce**. Another conversation in the same project
 >
 > 🧭 OnThread · question : Intégration Stripe
 
-The last line is how OnThread knows it asked. If you then answer a plain "yes" ("Oui, continue ici."), Claude does the task and ends with `🧭 OnThread · exception : Intégration Stripe`. From then on, Stripe requests in this conversation pass without a question. The live evaluation checks this two-turn exchange (scenario B17b).
+The last line is how OnThread knows it asked. If you then answer a plain "yes" ("Oui, continue ici."), Claude does the task and ends with `🧭 OnThread · exception : Intégration Stripe`. From then on, Stripe requests in this conversation pass without a question (OnThread remembers the last 10 accepted subjects per conversation). The live evaluation checks this two-turn exchange (scenario B17b).
 
 The same in English:
 

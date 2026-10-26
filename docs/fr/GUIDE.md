@@ -21,7 +21,7 @@ OnThread donne un sujet à chaque conversation et vérifie chaque nouvelle deman
 
 - **Une demande normale passe sans rien dire.** Pareil pour un sous-sujet, une évolution naturelle ou une petite question générale.
 - **Une demande nettement hors sujet** déclenche une seule question courte avant de commencer, avec le nom de la bonne conversation.
-- **Tu décides.** Si tu réponds « oui, ici », Claude fait la tâche et ne te repose plus la question sur ce sujet dans cette conversation.
+- **Tu décides.** Si tu réponds « oui, ici », Claude fait la tâche et ne te repose plus la question sur ce sujet dans cette conversation (les 10 derniers sujets acceptés sont retenus).
 
 ## Installation
 
@@ -65,7 +65,7 @@ Travaille normalement, il n'y a rien à configurer.
 Tout reste sur ton ordinateur, dans le dossier de données du plugin (`~/.claude/plugins/data/onthread-onthread/`).
 
 - **Ce qui est enregistré :** l'identifiant de chaque conversation, son titre si tu l'as nommée toi-même, le dossier du projet, le sujet en une ligne, les sujets acceptés avec « continue ici », et les dates.
-- **Ce qui n'est jamais enregistré :** tes messages, les réponses de Claude, le contenu de tes fichiers et tes secrets.
+- **Ce qui n'est jamais enregistré :** tes messages, les réponses de Claude et le contenu de tes fichiers. Si un titre ou un sujet contient un mot de passe ou une clé reconnaissable (`mdp=…`, clé API, long jeton), il est remplacé par `[redacted]` avant d'être enregistré. Évite quand même de mettre un secret dans le nom d'une conversation.
 
 Il n'y a ni serveur, ni télémétrie, ni clé API, ni service payant. La désinstallation supprime ces données ; ajoute `--keep-data` pour les garder.
 

@@ -1,6 +1,6 @@
 // Hook handlers. Each takes the hook's stdin JSON and returns the JSON to print (or null).
 import { COMMANDS } from './commands.mjs';
-import { promptContext, rankCandidates, sessionStartContext } from './context.mjs';
+import { MAX_EXCEPTIONS, promptContext, rankCandidates, sessionStartContext } from './context.mjs';
 import { parseMarkers } from './markers.mjs';
 import { projectOf } from './project.mjs';
 import { isValidId, listConversations, readSettings, updateConversation } from './store.mjs';
@@ -10,21 +10,22 @@ const ORIGINS = new Set(['startup', 'resume', 'clear', 'compact', 'fork']);
 // Only a yes/no flag is derived from the prompt; the prompt itself is never stored.
 // The answer to "continue here?" counts only if EVERY word belongs to a small
 // affirmative vocabulary ("oui", "ok", "vas-y", "continue ici"...), the reply starts
-// with an affirmative word or is "continue here", and it is not a question.
-// Anything else is not consent, and OnThread may simply ask again later.
+// with an affirmative word or is "continue here", and its only punctuation is
+// . , ! ' - … (so a question mark in any script or form, such as ? ؟ ⁇ ՞ or ❓, rules
+// it out). Anything else is not consent, and OnThread may simply ask again later.
+const NOT_PLAIN = /(?![.,!¡'’‘\-‐‑‒–—…])\p{P}|[❓❔⍰]/u;
 const YES_FIRST = new Set(['oui', 'ouais', 'yes', 'yep', 'yeah', 'ok', 'okay', 'daccord', 'vas', 'vasy', 'go', 'sure', 'si', 'ja', 'vale', 'claro', 'bien', 'd']);
 const YES_WORDS = new Set([...YES_FIRST, 'y', 'accord', 'sur', 'continue', 'continuer', 'continues', 'ici', 'here', 'please', 'stp', 'svp', 'merci', 'thanks', 'c', 'est', 'bon', 'fine', 'alright']);
 const CONTINUE = new Set(['continue', 'continuer', 'continues']);
 const HERE = new Set(['ici', 'here']);
 const PENDING_TTL_MS = 6 * 3600 * 1000;
-const MAX_EXCEPTIONS = 10;
 
 function words(text) {
   return normalize(text).replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').trim();
 }
 
 function isPlainYes(prompt) {
-  if (prompt.includes('?')) return false;
+  if (NOT_PLAIN.test(prompt.normalize('NFKC'))) return false;
   const w = words(prompt).split(' ').filter(Boolean);
   if (!w.length || w.length > 8 || !w.every((x) => YES_WORDS.has(x))) return false;
   if (YES_FIRST.has(w[0])) return true;
@@ -81,9 +82,9 @@ export function onPrompt(input, now = new Date()) {
   if (!settings.enabled || conv.protection === false) return null;
   if (skip) {
     // A short "yes" right after OnThread asked: remind Claude how to record the answer.
-    if (conv.pendingAnswer) {
+    if (conv.pendingAnswer === true) {
       const subject = cleanLabel(conv.pendingQuestion.text, 60);
-      return contextOutput('UserPromptSubmit', `[OnThread] The user is answering yes to your question about continuing here ("${subject}"). Do the task and end with: 🧭 OnThread · exception : ${subject}`);
+      return contextOutput('UserPromptSubmit', `[OnThread] The user is answering yes to your question about continuing here ("${subject}"). Do the task and end with a blank line, then: 🧭 OnThread · exception : ${subject}`);
     }
     return null;
   }
@@ -105,7 +106,7 @@ export function onStop(input, now = new Date()) {
     }
     // "Continue here" is recorded only when the user answered a plain yes to the
     // question OnThread asked in the previous turn, and only for that subject.
-    if (pendingQuestion(c, now) && c.pendingAnswer
+    if (pendingQuestion(c, now) && c.pendingAnswer === true
       && markers.exceptions.some((t) => sameSubject(t, c.pendingQuestion.text))) {
       const subject = c.pendingQuestion.text;
       const kept = (c.exceptions || []).filter((e) => !sameSubject(e.text, subject));

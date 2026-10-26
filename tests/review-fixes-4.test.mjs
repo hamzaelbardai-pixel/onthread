@@ -9,11 +9,11 @@ import { project, readConv, runCli, runHook, seed, tempDir, topic, uuid } from '
 const cwd = tempDir('onthread-proj-');
 
 function asked(data, id, subject) {
-  runHook('stop', { session_id: id, last_assistant_message: `On continue ici quand même ?\n🧭 OnThread · question : ${subject}` }, data);
+  runHook('stop', { session_id: id, last_assistant_message: `On continue ici quand même ?\n\n🧭 OnThread · question : ${subject}` }, data);
 }
 
 test('OT-005d a closing fence indented by 4 spaces does not close the block', () => {
-  const m = parseMarkers(['```text', '    ```', '🧭 OnThread · sujet : Still code', '```', '🧭 OnThread · sujet : Real'].join('\n'));
+  const m = parseMarkers(['```text', '    ```', '🧭 OnThread · sujet : Still code', '```', '', '🧭 OnThread · sujet : Real'].join('\n'));
   assert.equal(m.topic, 'Real');
 });
 
@@ -33,11 +33,11 @@ test('OT-012c a "yes" only covers the subject that was asked about', () => {
   seed(data, { id, title: 'Marketing', topic: topic('Stratégie marketing'), project: project(cwd) });
   asked(data, id, 'Intégration Stripe');
   runHook('prompt', { session_id: id, cwd, prompt: 'oui' }, data);
-  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n🧭 OnThread · exception : Payroll' }, data);
+  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n\n🧭 OnThread · exception : Payroll' }, data);
   assert.equal(readConv(data, id).exceptions.length, 0);
   asked(data, id, 'Intégration Stripe');
   runHook('prompt', { session_id: id, cwd, prompt: 'Oui vas-y' }, data);
-  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n🧭 OnThread · exception : Stripe' }, data);
+  runHook('stop', { session_id: id, last_assistant_message: 'Fait.\n\n🧭 OnThread · exception : Stripe' }, data);
   assert.deepEqual(readConv(data, id).exceptions.map((e) => e.text), ['Intégration Stripe']);
 });
 

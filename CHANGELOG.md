@@ -2,6 +2,21 @@
 
 All notable changes to OnThread are documented here. Versions follow [Semantic Versioning](https://semver.org).
 
+## [0.1.3] — 2026-10-26
+
+Fixes from Codex's first review of the whole repository (earlier passes only saw excerpts), each covered by a regression test (`tests/review-fixes-6.test.mjs`).
+
+- Privacy: obvious credentials in titles and topics (`password=…`, `mdp: Azerty123`, known API key formats, long random tokens) are replaced by `[redacted]` before they are stored, and Claude is told never to put secrets in a topic. Descriptive topics such as "OAuth token: rotation" are kept. The docs no longer promise more than that.
+- `/onthread:topic <new topic>` on an older Claude Code without the `UserPromptExpansion` hook now says the change is not possible there, instead of confirming a change it did not make.
+- Only the `🧭 OnThread` lines at the very end of Claude's answer, after a blank line and not indented, count. A marker line followed by any other text, glued to a quote, list item or paragraph, or indented, is an example, whatever its Markdown. A one-line "```code```" span is no longer mistaken for a code block, and a code block inside a list item (such as "10. ```") now closes at the item's indentation. This replaces line-by-line Markdown guessing. Claude is told to write the blank line.
+- A "continue here" reply may only contain the punctuation `. , ! ' - …` (typographic hyphens included, as in "Vas‑y"). A question mark in any script or form (`？`, `؟`, `¿`, `⁇`, `‽`, `՞`, `❓`…) means it is not consent.
+- The live evaluation no longer stops when Windows briefly locks a temporary folder.
+- Records with a non-boolean answer flag are ignored; consent requires an explicit `true`.
+- The note added to Claude's context stays within its 1,800-character budget even if a record was edited by hand.
+- The live evaluation always tests this checkout (`--plugin-dir`) and switches any installed copy off for the run.
+- The docs now say that the last 10 accepted subjects are remembered per conversation.
+- Tests find Claude Code in the desktop app's new install location (`%LOCALAPPDATA%\Claude-Data\…`).
+
 ## [0.1.2] — 2026-10-21
 
 Fixes from an independent technical review by Codex (OpenAI), each covered by a regression test (`tests/review-fixes.test.mjs`).

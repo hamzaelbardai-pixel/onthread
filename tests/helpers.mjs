@@ -80,20 +80,37 @@ export function project(dir) {
   return { path: dir, name: path.basename(dir) };
 }
 
-// Claude Code's own binary: $CLAUDE_BIN, else the newest desktop copy, else `claude` on PATH.
-export function findClaude() {
-  if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
-  const desktop = process.env.APPDATA && path.join(process.env.APPDATA, 'Claude', 'claude-code');
-  if (desktop && fs.existsSync(desktop)) {
-    const versions = fs.readdirSync(desktop).filter((v) => /^\d+\.\d+\.\d+$/.test(v))
-      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-    for (const v of versions.reverse()) {
-      for (const sub of fs.readdirSync(path.join(desktop, v))) {
-        const exe = path.join(desktop, v, sub, 'claude.exe');
-        if (fs.existsSync(exe)) return exe;
+function readdir(dir) {
+  try { return fs.readdirSync(dir); } catch { return []; }
+}
+
+// Copies of Claude Code bundled with the desktop app, newest version first. Two layouts:
+// %APPDATA%\Claude\claude-code\<ver>\<hash>\claude.exe (classic installer) and
+// %LOCALAPPDATA%\Claude-Data\<package>\claude-code\<ver>\<hash>\claude.exe (Store / MSIX).
+function desktopBuilds() {
+  const roots = [];
+  if (process.env.APPDATA) roots.push(path.join(process.env.APPDATA, 'Claude', 'claude-code'));
+  if (process.env.LOCALAPPDATA) {
+    const data = path.join(process.env.LOCALAPPDATA, 'Claude-Data');
+    for (const pkg of readdir(data)) roots.push(path.join(data, pkg, 'claude-code'));
+  }
+  const builds = [];
+  for (const root of roots) {
+    for (const v of readdir(root).filter((n) => /^\d+\.\d+\.\d+$/.test(n))) {
+      for (const sub of readdir(path.join(root, v))) {
+        const exe = path.join(root, v, sub, 'claude.exe');
+        if (fs.existsSync(exe)) builds.push({ v, exe });
       }
     }
   }
+  return builds.sort((a, b) => b.v.localeCompare(a.v, undefined, { numeric: true }));
+}
+
+// Claude Code's own binary: $CLAUDE_BIN, else the newest desktop copy, else `claude` on PATH.
+export function findClaude() {
+  if (process.env.CLAUDE_BIN && fs.existsSync(process.env.CLAUDE_BIN)) return process.env.CLAUDE_BIN;
+  const newest = desktopBuilds()[0];
+  if (newest) return newest.exe;
   const which = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['claude'], { encoding: 'utf8' });
   const first = which.status === 0 && which.stdout.split(/\r?\n/)[0].trim();
   return first || null;

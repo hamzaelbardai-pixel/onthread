@@ -38,9 +38,10 @@ The registry itself is never corrupted, because every write is atomic. Each rese
 
 ## What Claude writes on its visible lines
 
-OnThread records what Claude writes on a `🧭 OnThread · …` line at the end of an answer. Examples in code blocks, quotes, indented code or inline code are ignored.
+OnThread records what Claude writes on `🧭 OnThread · …` lines at the very end of an answer, after a blank line, at the very start of the line. Only that final block counts: a marker line followed by any other text, glued to the line above it (a quote, list item or paragraph) or indented (a list item's continuation) is treated as an example and ignored, as are lines in code blocks or with inline code. If Claude ever writes its line before a closing sentence, the line is simply not recorded, and OnThread asks for it again later.
 
-- A **"continue here"** answer is recorded only when three conditions hold: OnThread asked the question in the previous turn (each such question ends with a `🧭 OnThread · question : …` line), your reply is a short, plain yes ("oui", "yes", "vas-y", "oui, continue ici"…) with no negation, "but" or question, and the subject matches the question. A longer or conditional reply is not taken as consent, so OnThread may ask about that subject again later. Accepted subjects are listed by `/onthread:list`.
+- A **"continue here"** answer is recorded only when three conditions hold: OnThread asked the question in the previous turn (each such question ends with a `🧭 OnThread · question : …` line), your reply is a short, plain yes ("oui", "yes", "vas-y", "oui, continue ici"…) with no negation, "but" or question, and the subject matches the question. A longer or conditional reply is not taken as consent, so OnThread may ask about that subject again later. Accepted subjects are listed by `/onthread:list`. Each conversation keeps its last 10 accepted subjects; accepting an 11th forgets the oldest, which may then be asked about again.
+- A "continue here" reply may only contain the punctuation `. , ! ' - …`. Anything else, such as a question mark in any script or form (`?`, `؟`, `¿`, `⁇`, `‽`, `❓`…) or parentheses, means it is not taken as consent.
 - A **topic you set yourself** with `/onthread:topic` only ever changes with `/onthread:topic`. Automatic topics can be updated by Claude when you agree to a change.
 
 These rules rely on Claude writing the lines as instructed, so they are strong safeguards, not cryptographic proof.
@@ -53,18 +54,19 @@ Choosing which other conversations to show Claude is a cheap word-overlap rankin
 
 | Environment | Status |
 |---|---|
-| Windows 11, Claude Code desktop app (Code tab), Claude Code 2.1.299 | **Verified** (hooks, commands, live evaluation) |
-| Windows 11, `claude` CLI 2.1.299 | **Verified** (install, uninstall, `-p` runs) |
+| Windows 11, Claude Code desktop app (Code tab), Claude Code 2.1.299 and 2.1.308 | **Verified** (hooks, commands, live evaluation) |
+| Windows 11, `claude` CLI 2.1.299 and 2.1.308 | **Verified** (install, uninstall, `-p` runs) |
 | macOS, Linux | Designed for, not yet verified. CI runs the test suite there once the repository is on GitHub. |
-| Older Claude Code versions | Not verified. `session_title`, `last_assistant_message` and the `UserPromptExpansion` hook are recent. Without the latter, the commands fall back to a script run. |
+| Older Claude Code versions | Not verified. `session_title`, `last_assistant_message` and the `UserPromptExpansion` hook are recent. Without the latter, the commands fall back to a script run, and `/onthread:topic` can only show the topic, not change it. |
 | Claude Code on the web, cloud sessions, WSL sessions of the desktop app | Not supported: the desktop docs say plugins are unavailable there. |
 | VS Code / JetBrains | Not verified. The VS Code extension shares plugins with the CLI. |
 
-On Windows, Claude Code runs hook commands with Git Bash when it is installed. That path is verified. Without Git Bash it uses PowerShell: the hook command line is compatible, but that path has not been verified.
+Hooks start Node.js directly (exec form), without going through Git Bash or PowerShell.
 
 Node.js 18+ must be on the PATH. Claude Code does not guarantee Node. Without it the hooks fail to start, Claude Code shows a hook error, and your messages go through normally.
 
 ## Data
 
 - Removed when the plugin is uninstalled from its last scope, unless you pass `--keep-data`.
+- Titles and topics are stored as you or Claude wrote them, after obvious credentials (`password=…`, known API key formats, long random tokens) are replaced by `[redacted]`. A `password: …` or `token: …` value is only masked when it contains a digit or a symbol, so a topic such as "OAuth token: rotation" stays readable, and a password made of plain letters is not caught. This is a safety net, not a secret scanner: do not put secrets in conversation titles.
 - If a hook fails or times out (5 s), your message goes through unchanged. Errors are logged, without prompt content, to `onthread-errors.log` in the data folder.

@@ -17,19 +17,11 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const spec = JSON.parse(fs.readFileSync(path.join(here, 'scenarios.json'), 'utf8'));
 const CLAUDE = findClaude();
 
-// If OnThread is already installed and enabled for this user, loading this
-// checkout again with --plugin-dir would run every hook twice. Use the installed
-// copy then (a local-folder marketplace loads it from this checkout).
-function installedEnabled() {
-  try {
-    const home = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), '.claude');
-    const s = JSON.parse(fs.readFileSync(path.join(home, 'settings.json'), 'utf8'));
-    return s.enabledPlugins?.['onthread@onthread'] === true;
-  } catch {
-    return false;
-  }
-}
-const PLUGIN_ARGS = installedEnabled() ? [] : ['--plugin-dir', ROOT];
+// Always evaluate this checkout. An installed copy is a separate cached copy that may
+// be older, so it is switched off for the run (otherwise older Claude Code versions
+// would run every hook twice).
+const PLUGIN_ARGS = ['--plugin-dir', ROOT, '--settings', JSON.stringify({ enabledPlugins: { 'onthread@onthread': false } })];
+const PLUGIN_VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 if (!CLAUDE) {
   console.error('Claude Code binary not found. Set CLAUDE_BIN.');
   process.exit(2);
@@ -98,7 +90,11 @@ function run(scenario) {
   const record = () => {
     try { return JSON.parse(fs.readFileSync(path.join(convDir, `${sid}.json`), 'utf8')); } catch { return {}; }
   };
-  const finish = (r) => { fs.rmSync(base, { recursive: true, force: true }); return { id: scenario.id, expect: scenario.expect, seconds: elapsed(), ...r }; };
+  const finish = (r) => {
+    // Best effort: on Windows a just-exited process can still hold the folder for a moment.
+    try { fs.rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* left in the temp folder */ }
+    return { id: scenario.id, expect: scenario.expect, seconds: elapsed(), ...r };
+  };
 
   const first = turn(scenario.prompt, ['--session-id', sid]);
   if (first.failure) return finish({ pass: false, asks: false, detail: `ERROR: ${first.failure}`, reply: first.diag });
@@ -140,7 +136,7 @@ const lines = [
   '# OnThread live evaluation',
   '',
   `Date: ${new Date().toISOString().slice(0, 10)} · Claude Code ${version} · ${passed}/${results.length} scenarios as expected.`,
-  `Plugin: ${PLUGIN_ARGS.length ? 'this checkout via --plugin-dir' : 'installed onthread@onthread (local marketplace = this checkout)'}.`,
+  `Plugin: this checkout (OnThread ${PLUGIN_VERSION}) via --plugin-dir; any installed copy switched off for the run.`,
   'Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself.',
   '',
   '| Scenario | Expected | Result |',

@@ -65,9 +65,26 @@ export function isTrivialPrompt(prompt) {
   return t.length <= 20 && TRIVIAL.has(t);
 }
 
-// Safe one-line label for the registry: no control chars, no markdown, bounded.
+// Obvious credentials never reach the registry: "password=…", known API key
+// formats, and long random-looking tokens are replaced before a label is kept.
+// "key: value" only counts when the value is not a plain word, so topics such as
+// "OAuth token: rotation" survive. Every rule is a single linear scan.
+const KEYWORD_RE = /\b(pass(?:word|wd)?|pwd|mdp|mot de passe|secret|token|api[ _-]?key|apikey)(\s*)([:=])\s*(\S+)/giu;
+const KEY_FORMATS_RE = /\b(?:(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}|(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35})/g;
+const LONG_TOKEN_RE = /[A-Za-z0-9_-]{32,}/g;
+const MAX_SCAN = 4000; // labels are cut to at most 160 characters afterwards
+
+export function redactSecrets(s) {
+  return String(s || '').slice(0, MAX_SCAN)
+    .replace(KEYWORD_RE, (all, key, _sp, sep, value) =>
+      (sep === '=' || /[^\p{L}\p{M}]/u.test(value) ? `${key}: [redacted]` : all))
+    .replace(KEY_FORMATS_RE, '[redacted]')
+    .replace(LONG_TOKEN_RE, (t) => (/\d/.test(t) && /[A-Za-z]/.test(t) ? '[redacted]' : t));
+}
+
+// Safe one-line label for the registry: no control chars, no markdown, no obvious secrets, bounded.
 export function cleanLabel(s, max = 160) {
-  const t = String(s || '')
+  const t = redactSecrets(s)
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/[`*_~<>]/g, '')
     .replace(/^["'«“\s]+|["'»”\s]+$/g, '')

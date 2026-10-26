@@ -1,7 +1,7 @@
 # OnThread live evaluation
 
-Date: 2026-10-21 · Claude Code 2.1.299 (Claude Code) · 13/13 scenarios as expected.
-Plugin: installed onthread@onthread (local marketplace = this checkout).
+Date: 2026-10-26 · Claude Code 2.1.308 (Claude Code) · 13/13 scenarios as expected.
+Plugin: this checkout (OnThread 0.1.3) via --plugin-dir; any installed copy switched off for the run.
 Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself.
 
 | Scenario | Expected | Result |
@@ -23,28 +23,33 @@ Fictional conversations (tests/eval/scenarios.json). The classifier is a simple 
 ## B9-coherent
 
 ```text
-Je n'ai rien modifié : le dépôt `shop` est vide. Il ne contient aucun fichier suivi et aucun commit, et je n'y trouve aucune trace de Stripe ni de remboursement. Il n'existe donc pas encore d'intégration à laquelle ajouter les remboursements partiels.
+Je ne peux pas encore ajouter les remboursements partiels : le dépôt `shop` est vide. Il ne contient aucun fichier, même caché, et aucun commit. Il n'y a donc aucune intégration Stripe existante à étendre.
 
-Pour avancer, il me faut l'une de ces deux choses :
+De plus, je n'ai accès dans cette session qu'à des outils de lecture et de recherche. Je ne peux pas créer ni modifier de fichiers.
 
-1. **Le code existe ailleurs** (autre dossier, branche non récupérée, dépôt distant) : indique-moi le chemin ou la branche, et j'ajouterai les remboursements partiels en suivant ce qui est déjà en place.
-2. **On part de zéro** : dis-moi la stack (par exemple Node/Express, Next.js ou Python/FastAPI) et la façon dont les commandes et paiements sont stockés. Je créerai alors un module de remboursement qui :
-   - appelle `stripe.refunds.create({ payment_intent, amount })`, avec `amount` en centimes, pour un remboursement partiel ;
-   - vérifie que le montant ne dépasse pas ce qui reste remboursable (montant payé moins les remboursements déjà faits) ;
-   - utilise une clé d'idempotence pour éviter les doubles remboursements ;
-   - traite les webhooks `charge.refunded` et `refund.updated` pour mettre à jour le statut de la commande (`partially_refunded` ou `refunded`).
+Pour avancer, j'ai besoin de savoir :
 
-Dans quel cas es-tu ?
+1. **Où se trouve le code ?** Il est peut-être dans un autre dossier ou sur une autre branche (on est actuellement sur un `HEAD` sans commit). Si c'est le cas, indique-moi le chemin.
+2. **Quelle stack ?** Par exemple Node/Express, Next.js, Python/Django, Laravel. Je pourrai alors te proposer le code à intégrer.
+
+Voici comment fonctionne un remboursement partiel avec Stripe :
+- **Appel API :** `stripe.refunds.create({ payment_intent: 'pi_...', amount: 1500 })`. Le montant est en centimes et ne doit pas dépasser ce qui reste remboursable.
+- **Contrôle côté serveur :** calculer ce qui reste remboursable (`amount_received - amount_refunded`) avant d'appeler Stripe.
+- **Idempotence :** envoyer une clé `idempotencyKey` pour éviter de rembourser deux fois.
+- **Webhooks :** écouter `charge.refunded` et `refund.updated` pour mettre à jour le statut de la commande (`partially_refunded` ou `refunded`).
+- **Base de données :** une table `refunds` (commande, montant, raison, id Stripe, statut) pour garder un historique de plusieurs remboursements sur une même commande.
+
+Si tu me donnes la stack, je te fournis le code
 ```
 
 ## B10-subtopic
 
 ```text
-Le dépôt `shop` est vide pour l'instant, donc pas de code existant sur lequel s'appuyer. Voici la structure que je recommande. Elle s'adapte à n'importe quel framework.
+Le dépôt `shop` est vide pour l'instant : aucun fichier n'est suivi. Je ne peux donc pas me baser sur ton code. Voici la structure que je recommande. Elle convient à n'importe quelle stack, et les exemples sont en TypeScript/Express.
 
 ## 1. Un format de réponse d'erreur unique
 
-Toutes les erreurs doivent avoir la même forme. Je suggère le standard **RFC 9457 (Problem Details)** :
+Toutes les erreurs doivent sortir avec la même forme. La norme **RFC 9457 (Problem Details)** est un bon point de départ :
 
 ```json
 {
@@ -53,86 +58,105 @@ Toutes les erreurs doivent avoir la même forme. Je suggère le standard **RFC 9
   "status": 409,
   "code": "OUT_OF_STOCK",
   "detail": "Le produit 42 n'a plus que 0 unité disponible.",
-  "instance": "/orders",
-  "traceId": "a1b2c3d4",
-  "errors": [{ "field": "quantity", "message": "doit être ≤ 0" }]
+  "errors": [{ "field": "quantity", "message": "doit être ≤ 0" }],
+  "traceId": "a1b2c3"
 }
 ```
 
-- **`code`** : un identifiant stable et lisible par une machine. Le front s'en sert, pas du message.
-- **`errors[]`** : uniquement pour les erreurs de validation, avec une entrée par champ.
-- **`traceId`** : permet de retrouver la requête dans les logs.
+- `code` est un identifiant stable que le front peut tester. Ne lui fais jamais tester le texte du message.
+- `traceId` permet de retrouver l'erreur dans les logs.
 
 ## 2. Une hiérarchie d'erreurs métier
 
+```ts
+export class AppError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+    public details?: unknown,
+  ) { super(message); }
+}
+
+export class NotFoundError extends AppError {
+  constructor(resource: string, id: string) {
+    super(404, "NOT_FOUND", `${resource} ${id} introuvable`);
+  }
+}
+export class ValidationError extends AppError {
+  constructor(details: unknown) {
+    super(422, "VALIDATION_FAILED", "Données invalides", details);
+  }
+}
+// UnauthorizedError (401), ForbiddenError (403), ConflictError (409)...
 ```
-AppError (status, code, message, details?)
-├── ValidationError      → 400
-├── UnauthorizedError    → 401
-├── ForbiddenError       → 403
-├── NotFoundError        → 404
-├── ConflictError        → 409  (ex. OUT_OF_STOCK, EMAIL_TAKEN)
-├── BusinessRuleError    → 422  (ex. PAYMENT_DECLINED)
-└── ExternalServiceError → 502/503 (Stripe, transporteur…)
-```
 
-Les services **lèvent** ces erreurs. Ils ne construisent jamais de réponse HTTP eux-mêmes.
-
-## 3. Un seul middleware global pour convertir les erreurs en HTTP
-
-C'est le seul endroit qui transforme un
+Les 
 ```
 
 ## B11-general-question
 
 ```text
-Un **CRM** (*Customer Relationship Management*, ou gestion de la relation client) est à la fois une démarche et un outil logiciel. Il sert à centraliser et gérer toutes les interactions d'une entreprise avec ses clients et prospects.
-
-**Ce qu'il contient en général :**
-- **Fiches contacts** : coordonnées, entreprise, historique des échanges
-- **Historique** : emails, appels, rendez-vous, achats, tickets de support
-- **Pipeline commercial** : suivi des opportunités de vente, d'un premier contact jusqu'à la signature
-- **Segmentation** : regrouper les clients selon des critères (fidèles, inactifs, gros acheteurs…)
-- **Automatisations** : relances, emails marketing, rappels de tâches
-- **Reporting** : chiffre d'affaires prévisionnel, taux de conversion, performance des équipes
+Un **CRM** (*Customer Relationship Management*, ou gestion de la relation client) est un outil, en général un logiciel, qui centralise tout ce qu'une entreprise sait sur ses clients et prospects, et ce qu'elle fait avec eux.
 
 **À quoi ça sert :**
-- Avoir une vue à 360° de chaque client, partagée entre la vente, le marketing et le support
-- Ne rien oublier (relances, demandes en cours)
-- Personnaliser la relation et fidéliser
-- Piloter l'activité commerciale avec des données
+- **Centraliser les contacts** : coordonnées, entreprise, historique des échanges (emails, appels, rendez-vous).
+- **Suivre les ventes** : pipeline commercial, opportunités, devis, étapes de conversion.
+- **Automatiser le marketing** : campagnes email, segmentation, relances automatiques.
+- **Gérer le service client** : tickets, réclamations, suivi des demandes.
+- **Analyser** : tableaux de bord, taux de conversion, valeur client, prévisions de ventes.
 
-**Exemples connus :** Salesforce, HubSpot, Pipedrive, Zoho CRM, Odoo, ou des modules CRM intégrés à Shopify, Brevo, etc.
+**Exemples connus :** Salesforce, HubSpot, Zoho CRM, Pipedrive, Odoo.
 
-**Pour un e-commerce**, un CRM sert surtout à exploiter les données clients : historique de commandes, paniers abandonnés, segmentation pour des campagnes ciblées, programmes de fidélité et service après-vente.
+**Dans un e-commerce**, un CRM sert par exemple à relier les commandes à chaque client, à relancer les paniers abandonnés, à segmenter les clients (fidèles, inactifs, gros acheteurs…) et à personnaliser les offres.
+
+Côté backend, on peut l'intégrer par API (synchroniser les clients et les commandes vers HubSpot, par exemple) ou construire un mini-CRM maison dans la base de données du site.
 ```
 
 ## B12-natural-evolution
 
 ```text
-Je n'ai rien pu ajouter : le dépôt `shop` est vide pour l'instant. Il n'y a ni fichiers ni commits, donc pas encore de code Stripe auquel brancher l'envoi.
+Je n'ai rien pu modifier : le dépôt `shop` ne contient encore aucun fichier (pas de code Stripe, pas de webhook). De plus, dans cette session je n'ai que des outils de lecture, donc je ne peux pas créer de fichiers moi-même.
 
-Pour un email de confirmation après chaque paiement réussi, je propose de passer par le **webhook Stripe** plutôt que par la page de retour du client. Le webhook se déclenche même si le client ferme l'onglet avant la redirection :
+Voici comment je ferais, en supposant une stack Node/Express :
 
-1. Endpoint `POST /webhooks/stripe` qui vérifie la signature avec `stripe.webhooks.constructEvent` et le secret `STRIPE_WEBHOOK_SECRET`.
-2. Sur `checkout.session.completed` (ou `payment_intent.succeeded` si tu utilises les PaymentIntents directement), on récupère l'email (`customer_details.email`), le montant et les articles.
-3. **Idempotence** : on enregistre l'`event.id` traité pour ne pas envoyer deux fois l'email, car Stripe peut renvoyer le même événement.
-4. Envoi de l'email via un service transactionnel (Resend, SendGrid, Postmark…), puis réponse `200` rapide à Stripe.
+**Principe :** envoyer l'email depuis le webhook Stripe, à la réception de `checkout.session.completed` (ou `payment_intent.succeeded`). Il vaut mieux éviter de l'envoyer depuis la page de succès côté client, qui peut ne jamais se charger.
 
-Simple alternative : Stripe peut envoyer lui-même un reçu (Dashboard → Paramètres → Emails clients → « Paiements réussis »). Il n'y a alors aucun code à écrire, mais le design est limité.
+```js
+// routes/stripeWebhook.js
+import express from "express";
+import Stripe from "stripe";
+import { sendPaymentConfirmation } from "../services/email.js";
 
-Pour l'implémenter, il me faut :
-- **Stack** : Node/Express, Next.js, Python, autre ?
-- **Service d'email** : tu en as déjà un ou je choisis (je recommande Resend) ?
-- **Mode Stripe** : Checkout Sessions ou PaymentIntents / Elements ?
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const router = express.Router();
 
-Si le code existe ailleurs, indique-moi le bon répertoire.
+router.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      req.headers["stripe-signature"],
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    if (session.payment_status === "paid") {
+      // Idempotence : Stripe peut renvoyer le même événement
+      if (!(await alreadyProcessed(event.id))) {
+        await sendPaymentConfirmation({
+          to: session.customer_details.email,
+          amount: session.amount
 ```
 
 ## B13-confusion
 
 ```text
-Cette demande ressemble plutôt à ta conversation « Intégration Stripe », qui porte sur les paiements, les webhooks et les remboursements. Ici, on parle de stratégie marketing. Tu veux quand même que je corrige la synchronisation des paiements Stripe ici ?
+Cette demande correspond plutôt à ta conversation « Intégration Stripe » (paiements, webhooks, remboursements). Ici, le sujet est le marketing e-commerce. On continue ici quand même ?
 
 🧭 OnThread · question : Intégration Stripe
 ```
@@ -140,109 +164,104 @@ Cette demande ressemble plutôt à ta conversation « Intégration Stripe », qu
 ## B14-new-subject
 
 ```text
-Ta demande (un outil de gestion RH) n'a pas grand-chose à voir avec cette conversation, qui porte sur le design du dashboard et des pages produit de la boutique. Je te conseille d'ouvrir une conversation dédiée, et idéalement un projet séparé. On continue ici quand même ?
+Cette conversation porte sur le design du dashboard et des pages produit de la boutique. Un outil de gestion RH est un sujet à part, mieux vaut ouvrir une nouvelle conversation dédiée. On continue quand même ici ?
 
-🧭 OnThread · question : Outil RH
+🧭 OnThread · question : Outil de gestion RH
 ```
 
 ## B15-ambiguous
 
 ```text
-Je n'ai trouvé aucune page des tarifs à modifier : le dépôt `shop` ne contient aucun fichier suivi et n'a encore aucun commit.
+Je n'ai rien modifié : le dépôt `shop` ne contient aucun fichier suivi, donc je n'ai pas trouvé de page des tarifs.
 
-Pour avancer, il me faudrait :
-1. **Où se trouve la page des tarifs ?** Peut-être dans un autre dossier ou sur une autre branche, ou sur un CMS ou un outil no-code (Shopify, Webflow…).
-2. **Quel texte veux-tu mettre ?** Tu peux me donner le nouveau contenu (titres, descriptions des offres, prix, appels à l'action). Tu peux aussi me demander de le rédiger : dans ce cas, dis-moi les offres, les prix et le ton souhaité.
+Pour avancer, j'ai besoin de savoir :
+1. **Où se trouve la page ?** Un autre dossier ou dépôt, une autre branche (on est actuellement en HEAD détaché), ou un CMS externe ?
+2. **Quel texte faut-il changer ?** Par exemple de nouveaux prix, des noms d'offres, une accroche marketing ou des appels à l'action. Si c'est une réécriture marketing, dis-moi le ton voulu et la cible.
 
-Si tu veux, je peux aussi créer la page de zéro, avec un texte orienté conversion.
+Si la page n'existe pas encore, je peux aussi rédiger le texte de zéro. Indique-moi les offres et les prix.
 ```
 
 ## B16-voluntary-switch
 
 ```text
-Le dépôt `shop` est vide pour l'instant, donc je ne connais pas encore ta stack. Voici une proposition en **Node.js + Express** (TypeScript). Je peux l'adapter à FastAPI, NestJS ou autre si tu utilises autre chose.
+Le dépôt `shop` est vide pour l'instant, donc je ne peux pas me caler sur un framework existant. Voici une proposition en **Node.js + Express**, que je peux adapter à une autre stack si besoin.
 
-**`src/routes/health.ts`**
-```ts
-import { Router, Request, Response } from "express";
+**`src/routes/health.js`**
+```js
+const express = require('express');
 
-const router = Router();
+const router = express.Router();
 const startedAt = Date.now();
 
-// Liveness : le process répond
-router.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: "ok",
+router.get('/health', async (req, res) => {
+  const checks = {};
+
+  // Exemple de vérification de dépendance (à brancher sur la vraie DB)
+  // try {
+  //   await db.query('SELECT 1');
+  //   checks.database = 'ok';
+  // } catch (err) {
+  //   checks.database = 'error';
+  // }
+
+  const healthy = Object.values(checks).every((status) => status === 'ok');
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
     uptime: Math.round((Date.now() - startedAt) / 1000),
     timestamp: new Date().toISOString(),
-    version: process.env.APP_VERSION ?? "dev",
-  });
-});
-
-// Readiness : les dépendances sont joignables
-router.get("/health/ready", async (_req: Request, res: Response) => {
-  const checks: Record<string, "ok" | "error"> = {};
-
-  try {
-    // À remplacer par ton client DB, par ex. await db.query("SELECT 1")
-    await Promise.resolve();
-    checks.database = "ok";
-  } catch {
-    checks.database = "error";
-  }
-
-  const healthy = Object.values(checks).every((c) => c === "ok");
-  res.status(healthy ? 200 : 503).json({
-    status: healthy ? "ok" : "degraded",
+    version: process.env.APP_VERSION || 'dev',
     checks,
-    timestamp: new Date().toISOString(),
   });
 });
 
-export default router;
+module.exports = router;
 ```
 
-**`src/app.ts`**
-```ts
-import express from "express";
-import healthRouter from "./routes/health";
+**`src/app.js`**
+```js
+const express = require('express');
+const healthRouter = require('./routes/health');
 
 const app = express();
 app.use(healthRouter);
 
-const port = Number(process.env.PORT ?? 3000);
-app.listen(port, () => console.log(`API listening on :${port}`
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`API listening on port ${port}`));
+```
+
+**Comportement :**
+- Il renvoie **200** avec `status: "ok"` quand tout va bien, et **503** quand une vérification échoue. Les load balancers et Kubernetes s'appuient sur ce code HTTP.
+- `checks` est prévu pour ajouter la base de données, Redis, etc. Tant qu'aucune v
 ```
 
 ## B17-after-exception
 
 ```text
-Je n'ai pas pu corriger le webhook : le dépôt `shop` est vide. Ma recherche de fichiers n'a rien trouvé, donc il n'y a ni gestionnaire de webhook Stripe ni code qui parle de remboursements (`refund`, `charge.refunded`, `webhook`). Aucun fichier n'a été modifié.
+Je n'ai pas pu corriger le webhook : le dépôt `shop` ne contient aucun fichier suivi. Il n'y a ni code, ni handler de webhook, ni rien qui mentionne Stripe ou les remboursements (`refund`, `webhook`, `rembours`), et le dépôt n'a aucun commit.
 
-Le code se trouve probablement ailleurs : une autre branche, un autre dossier, ou un fichier encore à créer. Pour avancer, il me faut :
-- **Le chemin ou la branche** où se trouve le gestionnaire du webhook.
-- **Le problème constaté** : erreur de signature, événement ignoré, remboursement non enregistré en base, double traitement, ou autre. Ton « aussi » laisse penser que tu en as parlé ailleurs, mais je n'en ai pas l'historique dans cette conversation.
-
-Si le webhook n'existe pas encore, je peux l'écrire à partir de zéro. Dis-moi alors le framework utilisé (Express, Next.js, etc.).
-
-🧭 OnThread · exception : Intégration Stripe
+Le code du webhook doit donc être ailleurs. Il est peut-être dans un autre dossier ou une autre branche, ou il n'a pas encore été poussé ici. Pour avancer, envoie-moi l'un de ces éléments :
+- le chemin du fichier ou du dossier qui contient le handler du webhook,
+- ou le code directement ici,
+- et l'erreur que tu vois : signature invalide, événement `charge.refunded` ou `refund.updated` ignoré, double traitement, statut de commande non mis à jour, etc.
 ```
 
 ## B17b-continue-here-flow
 
 ```text
-Cette demande ressemble plutôt à ta conversation « Intégration Stripe » (paiements, webhooks, remboursements). On continue ici quand même ?
+Cette demande concerne plutôt ta conversation « Intégration Stripe », pas le marketing. Tu veux que je la traite quand même ici ?
 
 🧭 OnThread · question : Intégration Stripe
 
 --- user: Oui, continue ici. ---
 
-Je ne peux rien corriger pour l'instant : le dépôt `shop` ne contient aucun fichier. Aucun fichier n'est suivi et aucune recherche ne trouve « stripe » dans le code. Il n'y a pas non plus d'historique Git.
+Je n'ai rien pu corriger : le dépôt `shop` est vide. Aucun fichier n'y est suivi et aucune occurrence de « stripe » n'apparaît nulle part. Il n'y a donc pas de code de paiement ou de webhook à examiner.
 
 Pour avancer, il me faudrait :
-1. **L'emplacement du code** : est-il dans un autre dossier ou sur une branche à récupérer ?
-2. **Le symptôme** : par exemple des paiements réussis sur Stripe mais toujours « en attente » en base, des webhooks qui ne sont pas reçus ou qui sont rejetés (erreur de signature), ou des doublons.
-3. **Les logs ou messages d'erreur**, si tu en as.
+1. **L'emplacement du code** : est-il dans un autre dossier ou une autre branche ? Le dépôt est actuellement en HEAD détaché, sans aucun commit.
+2. **Le symptôme exact** : des paiements réussis dans Stripe mais pas mis à jour dans ta base ? Des webhooks en échec ou reçus en double ? Des statuts qui ne correspondent pas ? Un message d'erreur ou un extrait de log m'aiderait beaucoup.
+
+Dès que j'ai le code, je m'en occupe.
 
 🧭 OnThread · exception : Intégration Stripe
 ```
@@ -250,7 +269,7 @@ Pour avancer, il me faudrait :
 ## C25-english-confusion
 
 ```text
-This looks like it belongs in your "Stripe integration" conversation, which covers payments, webhooks and refunds. Do you want to continue here anyway?
+This looks like it belongs in your "Stripe integration" conversation, which covers Stripe payments and webhooks. This one is about marketing strategy. Do you want me to go ahead here anyway?
 
 🧭 OnThread · question : Stripe integration
 ```
@@ -258,7 +277,7 @@ This looks like it belongs in your "Stripe integration" conversation, which cove
 ## C26-mixed-languages
 
 ```text
-Cette demande colle plutôt à ta conversation « Stripe integration » (paiements, webhooks, remboursements), alors que celle-ci porte sur le marketing. On continue ici quand même ?
+Cette demande correspond plutôt à ta conversation « Stripe integration », qui porte sur les paiements, les webhooks et les remboursements Stripe. On continue ici quand même ?
 
 🧭 OnThread · question : Stripe integration
 ```
@@ -266,23 +285,25 @@ Cette demande colle plutôt à ta conversation « Stripe integration » (paiemen
 ## A-first-message-topic
 
 ```text
-Le dépôt `shop` est vide pour l'instant. Il n'y a ni code ni stack définie, donc je ne peux rien brancher sur l'existant. Avant d'écrire quoi que ce soit, j'ai besoin de quelques précisions.
+Le dépôt `shop` est vide pour l'instant : il n'y a ni code ni fichier, donc je n'ai pas de stack existante sur laquelle me caler. Avant d'écrire du code, voici ce que je propose et ce qu'il me faut savoir.
 
-**1. Technique**
-- Quelle stack voulez-vous utiliser ? Par exemple Node/TypeScript, Python/Django, PHP/Laravel ou Shopify/WooCommerce. Ou bien le code de la boutique est-il dans un autre dépôt ?
-- Quelle base de données ? PostgreSQL, MySQL, SQLite… ?
+## Conception recommandée (simple et solide)
 
-**2. Règles du programme**
-- **Gain de points** : par exemple 1 point par euro dépensé. Faut-il aussi des bonus (inscription, anniversaire, avis, parrainage) ?
-- **Utilisation** : par exemple 100 points = 5 € de réduction. Les points peuvent-ils aussi servir à obtenir des produits offerts ?
-- **Expiration** : les points expirent-ils, par exemple au bout de 12 mois ?
-- **Niveaux** : voulez-vous des paliers (Bronze, Argent, Or) avec des avantages différents ?
-- **Remboursements** : faut-il retirer les points gagnés quand une commande est remboursée ?
+**Principe** : les points sont stockés dans un **historique de mouvements**, pas dans un simple compteur. Le solde est la somme des mouvements. On peut ainsi auditer, annuler et faire expirer les points proprement.
 
-**Ce que je propose par défaut** si vous n'avez pas de préférence :
-- Les points sont gagnés une fois le paiement confirmé, pas à la commande.
-- Chaque mouvement de points est enregistré dans un historique, et le solde est calculé à partir de cet historique. Cela simplifie les remboursements, l'expiration et les audits.
-- Une API pour consulter son solde et utiliser ses points au moment du paiement.
+**Modèle de données :**
+- `loyalty_accounts` : client, solde mis en cache, niveau éventuel (Bronze/Argent/Or)
+- `loyalty_transactions` : client, type (`earn`, `redeem`, `expire`, `adjust`, `reversal`), points (+/−), référence de commande, date d'expiration, date de création
 
-Donnez-moi la stack et vos règles, et je mets en place le modèle de données, la logique et les t
+**Règles de base :**
+- **Gain** : par exemple 1 point par euro dépensé, calculé sur le montant payé hors frais de port, et crédité **une fois la commande payée** (ou livrée, pour limiter la fraude)
+- **Utilisation** : par exemple 100 points = 5 € de réduction au paiement, avec un seuil minimum
+- **Remboursement** : on retire les points gagnés sur la commande et on rend ceux qui avaient été utilisés
+- **Expiration** : par exemple 12 mois après le gain, gérée par une tâche planifiée
+
+Si vous utilisez Stripe, le crédit des points se branche naturellement sur le webhook `payment_intent.succeeded`, et le retrait sur `charge.refunded`.
+
+## Questions avant de coder
+
+1. **Stack** : quel langage et quel framework (Node/Express, Django, Laravel…) ? Quelle
 ```

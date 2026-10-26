@@ -53,9 +53,9 @@ test('OT-015 only a short, plain yes counts as consent', () => {
     const data = tempDir();
     const id = uuid();
     seed(data, { id, title: 'Marketing', topic: topic('Stratégie marketing'), project: project(cwd) });
-    runHook('stop', { session_id: id, last_assistant_message: 'On continue ici ?\n🧭 OnThread · question : Billing' }, data);
+    runHook('stop', { session_id: id, last_assistant_message: 'On continue ici ?\n\n🧭 OnThread · question : Billing' }, data);
     runHook('prompt', { session_id: id, cwd, prompt }, data);
-    runHook('stop', { session_id: id, last_assistant_message: 'Voilà.\n🧭 OnThread · exception : Billing' }, data);
+    runHook('stop', { session_id: id, last_assistant_message: 'Voilà.\n\n🧭 OnThread · exception : Billing' }, data);
     assert.equal(readConv(data, id).exceptions.length > 0, expected, prompt);
   }
 });

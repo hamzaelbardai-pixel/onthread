@@ -8,6 +8,7 @@ import { context, readConv, runHook, seed, tempDir, topic, uuid } from './helper
 test('markers: French, English, decorated, and last-topic-wins', () => {
   const m = parseMarkers([
     'Voilà.',
+    '',
     '🧭 OnThread · sujet : Paiements Stripe',
     '*🧭 OnThread — topic: Stripe payments*',
     '🧭️ OnThread · exception: facturation',

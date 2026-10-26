@@ -120,6 +120,7 @@ test('OT-005b indented code and longer fences never yield markers', async () => 
     '```',
     '🧭 OnThread · sujet : Inside a 4-backtick block',
     '````',
+    '',
     '🧭 OnThread · sujet : Real topic',
   ].join('\n'));
   assert.equal(m.topic, 'Real topic');
