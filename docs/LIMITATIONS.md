@@ -56,7 +56,7 @@ Choosing which other conversations to show Claude is a cheap word-overlap rankin
 |---|---|
 | Windows 11, Claude Code desktop app (Code tab), Claude Code 2.1.299 and 2.1.308 | **Verified** (hooks, commands, live evaluation) |
 | Windows 11, `claude` CLI 2.1.299 and 2.1.308 | **Verified** (install, uninstall, `-p` runs) |
-| macOS, Linux | Designed for, not yet verified. CI runs the test suite there once the repository is on GitHub. |
+| macOS, Linux | The automated test suite passes there (GitHub CI, Node 18 and 22). Not yet tried in real use. |
 | Older Claude Code versions | Not verified. `session_title`, `last_assistant_message` and the `UserPromptExpansion` hook are recent. Without the latter, the commands fall back to a script run, and `/onthread:topic` can only show the topic, not change it. |
 | Claude Code on the web, cloud sessions, WSL sessions of the desktop app | Not supported: the desktop docs say plugins are unavailable there. |
 | VS Code / JetBrains | Not verified. The VS Code extension shares plugins with the CLI. |
