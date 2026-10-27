@@ -27,6 +27,12 @@ if (!CLAUDE) {
   process.exit(2);
 }
 
+// Fictional replies may name variables such as STRIPE_SECRET_KEY; the report is
+// shipped with the plugin, so such names are masked to avoid looking like credential use.
+function maskCredentialNames(text) {
+  return text.replace(/\b[A-Z][A-Z0-9_]*(?:SECRET|KEY|TOKEN|PASSWORD)[A-Z0-9_]*\b/g, '<ENV_VAR>');
+}
+
 const ASK_RE = /\?/;
 const CONTINUE_RE = /(continu|poursui|on y va|keep going|proceed|go ahead|ici|here|plutôt|rather|dédiée|dedicated|nouvelle conversation|new conversation)/i;
 
@@ -137,13 +143,13 @@ const lines = [
   '',
   `Date: ${new Date().toISOString().slice(0, 10)} · Claude Code ${version} · ${passed}/${results.length} scenarios as expected.`,
   `Plugin: this checkout (OnThread ${PLUGIN_VERSION}) via --plugin-dir; any installed copy switched off for the run.`,
-  'Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself.',
+  'Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself. Environment variable names that look like credentials are shown as <ENV_VAR>.',
   '',
   '| Scenario | Expected | Result |',
   '|---|---|---|',
   ...results.map((r) => `| ${r.id} | ${r.expect} | ${r.pass ? 'as expected' : '**not as expected**'}${r.detail ? ` (${r.detail})` : ''} |`),
   '',
-  ...results.flatMap((r) => [`## ${r.id}`, '', '```text', r.reply.trim().slice(0, 1500), '```', '']),
+  ...results.flatMap((r) => [`## ${r.id}`, '', '```text', maskCredentialNames(r.reply.trim().slice(0, 1500)), '```', '']),
 ];
 if (only.length) {
   console.log(`\n${passed}/${results.length} as expected (subset run: docs/EVAL-RESULTS.md not rewritten).`);

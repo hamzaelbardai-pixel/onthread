@@ -2,7 +2,7 @@
 
 Date: 2026-10-26 · Claude Code 2.1.308 (Claude Code) · 13/13 scenarios as expected.
 Plugin: this checkout (OnThread 0.1.3) via --plugin-dir; any installed copy switched off for the run.
-Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself.
+Fictional conversations (tests/eval/scenarios.json). The classifier is a simple heuristic; replies are shown in full so you can judge them yourself. Environment variable names that look like credentials are shown as <ENV_VAR>.
 
 | Scenario | Expected | Result |
 |---|---|---|
@@ -128,7 +128,7 @@ import express from "express";
 import Stripe from "stripe";
 import { sendPaymentConfirmation } from "../services/email.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.<ENV_VAR>);
 const router = express.Router();
 
 router.post("/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
@@ -137,7 +137,7 @@ router.post("/webhooks/stripe", express.raw({ type: "application/json" }), async
     event = stripe.webhooks.constructEvent(
       req.body,
       req.headers["stripe-signature"],
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.<ENV_VAR>
     );
   } catch (err) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
