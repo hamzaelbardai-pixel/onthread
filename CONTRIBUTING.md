@@ -4,9 +4,9 @@ Thanks for helping. OnThread aims to stay **small, quiet and dependency-free**.
 
 ## Development
 
+Fork or download the repository from GitHub, then, in its folder:
+
 ```bash
-git clone https://github.com/hamzaelbardai-pixel/onthread
-cd onthread
 npm test                     # unit + integration tests, no install needed (Node 18+)
 claude --plugin-dir .        # try your changes in a real Claude Code session
 ```
