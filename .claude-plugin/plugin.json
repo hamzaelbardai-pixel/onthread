@@ -11,6 +11,9 @@
   },
   "homepage": "https://github.com/hamzaelbardai-pixel/onthread",
   "repository": "https://github.com/hamzaelbardai-pixel/onthread",
+  "documentationUrl": "https://github.com/hamzaelbardai-pixel/onthread#readme",
+  "supportUrl": "https://github.com/hamzaelbardai-pixel/onthread/issues",
+  "privacyPolicyUrl": "https://github.com/hamzaelbardai-pixel/onthread#privacy",
   "license": "MIT",
   "keywords": ["conversations", "sessions", "context", "focus", "hooks", "productivity"]
 }
